@@ -55,7 +55,7 @@ add_requires(
     "vulkan-memory-allocator",
     "vulkan-memory-allocator-hpp"
 )
--- Use dynamic libraries for direct dependencies and static libraries for indirect dependencies.
+-- use dynamic libraries for direct dependencies and static libraries for indirect dependencies.
 add_requires("libsdl", {configs = {shared = is_config("third_party_kind", "shared")}})
 add_requires("fmt", {configs = {shared = is_config("third_party_kind", "shared"), header_only = false}})
 add_requires("spdlog", {configs = {shared = is_config("third_party_kind", "shared"), header_only = false, fmt_external = true, wchar = true, wchar_filename = false, console_wchar = true}})
