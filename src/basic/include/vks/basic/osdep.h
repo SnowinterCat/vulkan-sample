@@ -35,6 +35,8 @@
 #    endif
 #endif
 
+#define VKS_NAMESAPCE vks
+#define VKS_NAMESAPCE_STRING "vks"
 #define VKS_BEGIN                                                                                  \
     namespace vks                                                                                  \
     {
