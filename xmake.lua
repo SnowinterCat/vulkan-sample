@@ -36,8 +36,8 @@ check_macros("has_std_runtime_format", "__cpp_lib_format >= 202311L", {name = "h
 
 -- 隐藏设置、隐藏目标、打包命令
 includes("lua/hideoptions.lua")
-includes("lua/hidetargets.lua")
-includes("lua/pack.lua")
+-- includes("lua/hidetargets.lua")
+-- includes("lua/pack.lua")
 
 -- some of the third-party use our own configurations
 add_repositories("myrepo 3rd", {rootdir = os.scriptdir()})

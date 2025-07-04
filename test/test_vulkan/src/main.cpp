@@ -1,4 +1,4 @@
-#include <print>
+// #include <print>
 
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC true
 #define VULKAN_HPP_NO_EXCEPTIONS
@@ -11,8 +11,12 @@
 
 namespace fmtlib
 {
+#if __cpp_lib_format >= 202311L
+    using namespace std;
+#else
     using namespace fmt;
-}
+#endif
+} // namespace fmtlib
 
 namespace sdl3
 {
@@ -30,6 +34,8 @@ namespace sdl3
     } // namespace raii
 
     auto getVulkanInstanceExtensions() -> std::span<const char *const>;
+    auto getVulkanSurfaceKHRofWindow(SDL_Window *window, ::vk::raii::Instance &instance)
+        -> std::tuple<::vk::Result, vk::raii::SurfaceKHR>;
 
 } // namespace sdl3
 
@@ -66,17 +72,36 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char *const *argv)
     vk::raii::Context                context;
     vk::raii::Instance               instance  = nullptr;
     vk::raii::DebugUtilsMessengerEXT messenger = nullptr;
+    vk::raii::SurfaceKHR             surface   = nullptr;
+
+    vk::PhysicalDeviceGroupProperties physicalDeviceGroup;
+    vk::raii::Device                  device             = nullptr;
+    vk::raii::Queue                   graphicsQueue      = nullptr;
+    vk::raii::Queue                   transferQueue      = nullptr;
+    vk::raii::Queue                   presentQueue       = nullptr;
+    vk::raii::Queue                   computeQueue       = nullptr;
+    uint64_t                          graphicsQueueIndex = 0;
+    uint64_t                          transferQueueIndex = 0;
+    uint64_t                          presentQueueIndex  = 0;
+    uint64_t                          computeQueueIndex  = 0;
 
     sdl3::raii::Init   initer((void *)SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD));
     sdl3::raii::Window window(
         SDL_CreateWindow("ImGui SDL3+Vulkan example", 1280, 720,
                          SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY));
 
+    // instance
     if (std::tie(res, instance, messenger) = vulkan::createInstanceAndDebugUtilsMessenger(
             context, sdl3::getVulkanInstanceExtensions());
         res != vk::Result::eSuccess) {
-        std::println("Create Vulkan Instance Error, code: {}, info: {}", static_cast<int>(res),
+        SPDLOG_ERROR("[Vulkan] Create Instance Error, code: {}, info: {}", static_cast<int>(res),
                      vk::to_string(res));
+    }
+
+    // surface
+    if (std::tie(res, surface) = sdl3::getVulkanSurfaceKHRofWindow(window.get(), instance);
+        res != vk::Result::eSuccess) {
+        SPDLOG_ERROR("[libsdl3] Create SufaceKHR of Window Error, info: {}", SDL_GetError());
     }
 
     auto event = SDL_Event();
@@ -113,6 +138,16 @@ namespace sdl3
         return std::span(extensions, extenCnt);
     }
 
+    auto getVulkanSurfaceKHRofWindow(SDL_Window *window, ::vk::raii::Instance &instance)
+        -> std::tuple<::vk::Result, vk::raii::SurfaceKHR>
+    {
+        ::vk::Result res = ::vk::Result::eSuccess;
+        VkSurfaceKHR surface;
+        if (!SDL_Vulkan_CreateSurface(window, *instance, nullptr, &surface)) {
+            res = ::vk::Result::eErrorSurfaceLostKHR;
+        }
+        return std::tuple(res, ::vk::raii::SurfaceKHR(instance, surface));
+    }
 } // namespace sdl3
 
 namespace vulkan
@@ -196,17 +231,15 @@ namespace vulkan
 
     bool hasLayer(std::span<::vk::LayerProperties> properties, const char *layer)
     {
-        for (const auto &pp : properties)
-            if (strcmp(pp.layerName, layer) == 0)
-                return true;
-        return false;
+        return std::any_of(properties.begin(), properties.end(), [&layer](const auto &property) {
+            return strcmp(property.layerName, layer) == 0;
+        });
     }
     bool hasExtension(std::span<::vk::ExtensionProperties> properties, const char *extension)
     {
-        for (const auto &pp : properties)
-            if (strcmp(pp.extensionName, extension) == 0)
-                return true;
-        return false;
+        return std::any_of(properties.begin(), properties.end(), [&extension](const auto &pp) {
+            return strcmp(pp.extensionName, extension) == 0;
+        });
     }
 
     auto createInstanceAndDebugUtilsMessenger(const ::vk::raii::Context   &context,
@@ -249,15 +282,16 @@ namespace vulkan
         }
 
         // create ::vk::raii::instance
-        auto instanceInfo = ::vk::InstanceCreateInfo({}, &appInfo, enabledLayers, enabledExtensions,
-                                                     EnableValidation ? &vdFeatures : nullptr);
-        {
+        if (res == ::vk::Result::eSuccess) {
+            auto instanceInfo =
+                ::vk::InstanceCreateInfo({}, &appInfo, enabledLayers, enabledExtensions,
+                                         EnableValidation ? &vdFeatures : nullptr);
             auto val = context.createInstance(instanceInfo);
             val ? void(instance = std::move(val.value())) : void(res = val.error());
         }
 
         // create ::vk::raii::DebugUtilsMessengerEXT
-        if (EnableValidation) {
+        if (res == ::vk::Result::eSuccess && EnableValidation) {
             auto val = instance.createDebugUtilsMessengerEXT(messengerInfo);
             val ? void(messenger = std::move(val.value())) : void(res = val.error());
         }
