@@ -21,11 +21,11 @@ CheckOptions:
   readability-identifier-naming.ProtectedMemberPrefix:  _
   readability-identifier-naming.PrivateMemberCase:      camelBack
   readability-identifier-naming.PrivateMemberPrefix:    _
-  ### 成员函数名: lower_case（公有）、_lower_case（保护、私有）
-  readability-identifier-naming.PublicMethodCase:       lower_case
-  readability-identifier-naming.ProtectedMethodCase:    lower_case
+  ### 成员函数名: camelBack（公有）、_camelBack（保护、私有）
+  readability-identifier-naming.PublicMethodCase:       camelBack
+  readability-identifier-naming.ProtectedMethodCase:    camelBack
   readability-identifier-naming.ProtectedMethodPrefix:  _
-  readability-identifier-naming.PrivateMethodCase:      lower_case
+  readability-identifier-naming.PrivateMethodCase:      camelBack
   readability-identifier-naming.PrivateMethodPrefix:    _
   ##  枚举
   ### 名: CamelCase
@@ -34,7 +34,7 @@ CheckOptions:
   readability-identifier-naming.EnumConstantCase:   CamelCase
   readability-identifier-naming.EnumConstantPrefix: e
   ##  函数
-  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.FunctionCase: camelBack
   ##  参数
   readability-identifier-naming.ParameterCase:  camelBack
   ##  变量
