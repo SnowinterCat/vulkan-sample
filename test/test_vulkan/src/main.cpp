@@ -1,4 +1,4 @@
-// #include <print>
+#include <ranges>
 
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC true
 #define VULKAN_HPP_NO_EXCEPTIONS
@@ -17,6 +17,24 @@ namespace fmtlib
     using namespace fmt;
 #endif
 } // namespace fmtlib
+
+namespace outptrlib
+{
+#if defined(__cpp_lib_out_ptr)
+    using namespace std;
+#else
+    using namespace out_ptr::out_ptr;
+#endif
+} // namespace outptrlib
+
+namespace expectedlib
+{
+#if defined(__cpp_lib_expected)
+    using namespace std;
+#else
+    using namespace tl;
+#endif
+} // namespace expectedlib
 
 namespace sdl3
 {
@@ -54,9 +72,42 @@ namespace vulkan
     bool hasLayer(std::span<const char *const> layers, const char *layer);
     bool hasExtension(std::span<const char *const> extensions, const char *extension);
 
+    auto selectDeviceQueueFamilyIndex(std::span<const ::vk::QueueFamilyProperties> properties,
+                                      ::vk::QueueFlags required, ::vk::QueueFlags refused)
+        -> uint64_t;
+    auto selectPresentQueueFamilyIndex(const ::vk::raii::PhysicalDevice            &physicalDevice,
+                                       const ::vk::raii::SurfaceKHR                &surface,
+                                       std::span<const ::vk::QueueFamilyProperties> properties)
+        -> uint64_t;
+    auto selectDeviceQueueIndex(std::span<const ::vk::QueueFamilyProperties> properties,
+                                const uint64_t &graphicsQueueFamilyIndex,
+                                const uint64_t &transferQueueFamilyIndex,
+                                const uint64_t &presentQueueFamilyIndex,
+                                const uint64_t &computeQueueFamilyIndex)
+        -> std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>;
+
+    auto makeDeviceQueueCreateInfos(const uint64_t &graphicsQueueIndex,
+                                    const uint64_t &transferQueueIndex,
+                                    const uint64_t &presentQueueIndex,
+                                    const uint64_t &computeQueueIndex, //
+                                    float graphicsProirity, float transferProirity,
+                                    float presentProirity, float computeProirity)
+        -> std::tuple<std::vector<float>, std::vector<::vk::DeviceQueueCreateInfo>>;
+
     auto createInstanceAndDebugUtilsMessenger(const ::vk::raii::Context   &context,
                                               std::span<const char *const> extensions)
         -> std::tuple<::vk::Result, ::vk::raii::Instance, ::vk::raii::DebugUtilsMessengerEXT>;
+    auto getPhysicalDeviceGroup(const ::vk::raii::Instance &instance)
+        -> std::tuple<::vk::Result, ::vk::PhysicalDeviceGroupProperties>;
+    auto createDeviceAndQueueIndices(const ::vk::raii::Instance              &instance,
+                                     const vk::PhysicalDeviceGroupProperties &properties,
+                                     const ::vk::raii::SurfaceKHR            &surface,
+                                     const ::vk::PhysicalDeviceFeatures      &features)
+        -> std::tuple<::vk::Result, ::vk::raii::Device, uint64_t, uint64_t, uint64_t, uint64_t>;
+    auto getDeviceQueues(const ::vk::raii::Device &device, const uint64_t &graphicsQueueIndex,
+                         const uint64_t &transferQueueIndex, const uint64_t &presentQueueIndex,
+                         const uint64_t &computeQueueIndex)
+        -> std::tuple<::vk::raii::Queue, ::vk::raii::Queue, ::vk::raii::Queue, ::vk::raii::Queue>;
 
 } // namespace vulkan
 
@@ -96,12 +147,29 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char *const *argv)
         res != vk::Result::eSuccess) {
         SPDLOG_ERROR("[Vulkan] Create Instance Error, code: {}, info: {}", static_cast<int>(res),
                      vk::to_string(res));
+        return static_cast<int>(res);
     }
-
     // surface
     if (std::tie(res, surface) = sdl3::getVulkanSurfaceKHRofWindow(window.get(), instance);
         res != vk::Result::eSuccess) {
         SPDLOG_ERROR("[libsdl3] Create SufaceKHR of Window Error, info: {}", SDL_GetError());
+        return static_cast<int>(res);
+    }
+    // physical device group
+    if (std::tie(res, physicalDeviceGroup) = vulkan::getPhysicalDeviceGroup(instance);
+        res != vk::Result::eSuccess) {
+        SPDLOG_ERROR("[Vulkan] Find PhysicalDeviceGroup Error, code: {}, info: {}",
+                     static_cast<int>(res), vk::to_string(res));
+        return static_cast<int>(res);
+    }
+    // device
+    if (std::tie(res, device, graphicsQueueIndex, transferQueueIndex, presentQueueIndex,
+                 computeQueueIndex) =
+            vulkan::createDeviceAndQueueIndices(instance, physicalDeviceGroup, surface, {});
+        res != vk::Result::eSuccess) {
+        SPDLOG_ERROR("[Vulkan] Create Device and Queue Error, code: {}, info: {}",
+                     static_cast<int>(res), vk::to_string(res));
+        return static_cast<int>(res);
     }
 
     auto event = SDL_Event();
@@ -141,8 +209,8 @@ namespace sdl3
     auto getVulkanSurfaceKHRofWindow(SDL_Window *window, ::vk::raii::Instance &instance)
         -> std::tuple<::vk::Result, vk::raii::SurfaceKHR>
     {
-        ::vk::Result res = ::vk::Result::eSuccess;
-        VkSurfaceKHR surface;
+        ::vk::Result res     = ::vk::Result::eSuccess;
+        VkSurfaceKHR surface = nullptr;
         if (!SDL_Vulkan_CreateSurface(window, *instance, nullptr, &surface)) {
             res = ::vk::Result::eErrorSurfaceLostKHR;
         }
@@ -242,6 +310,119 @@ namespace vulkan
         });
     }
 
+    auto selectDeviceQueueFamilyIndex(std::span<const ::vk::QueueFamilyProperties> properties,
+                                      ::vk::QueueFlags required, ::vk::QueueFlags refused)
+        -> uint64_t
+    {
+        for (size_t i = 0; i < properties.size(); ++i) {
+            if (properties[i].queueFlags & required && !(properties[i].queueFlags & refused)) {
+                return static_cast<uint64_t>(i);
+            }
+        }
+        return std::numeric_limits<uint64_t>::max();
+    }
+
+    auto selectPresentQueueFamilyIndex(const ::vk::raii::PhysicalDevice            &physicalDevice,
+                                       const ::vk::raii::SurfaceKHR                &surface,
+                                       std::span<const ::vk::QueueFamilyProperties> properties)
+        -> uint64_t
+    {
+        for (size_t i = 0; i < properties.size(); ++i) {
+            if (physicalDevice.getSurfaceSupportKHR(i, surface) == ::vk::True) {
+                return i;
+            }
+        }
+        return std::numeric_limits<uint64_t>::max();
+    }
+
+    auto selectDeviceQueueIndex(std::span<const ::vk::QueueFamilyProperties> properties,
+                                const uint64_t &graphicsQueueFamilyIndex,
+                                const uint64_t &transferQueueFamilyIndex,
+                                const uint64_t &presentQueueFamilyIndex,
+                                const uint64_t &computeQueueFamilyIndex)
+        -> std::tuple<uint64_t, uint64_t, uint64_t, uint64_t>
+    {
+        uint64_t              graphicsQueueIndex = std::numeric_limits<uint64_t>::max();
+        uint64_t              transferQueueIndex = std::numeric_limits<uint64_t>::max();
+        uint64_t              presentQueueIndex  = std::numeric_limits<uint64_t>::max();
+        uint64_t              computeQueueIndex  = std::numeric_limits<uint64_t>::max();
+        std::vector<uint32_t> remainQueueCounts(properties.size());
+        for (size_t i = 0; i < properties.size(); ++i) {
+            remainQueueCounts[i] = properties[i].queueCount;
+        }
+
+        auto calcIndex = [](size_t maxSize, uint32_t rawCount, uint32_t &remainCount,
+                            uint64_t familyIndex) -> uint64_t {
+            uint64_t index = std::numeric_limits<uint64_t>::max();
+            if (familyIndex < maxSize) {
+                index = static_cast<uint64_t>(rawCount - remainCount) << 32 | familyIndex;
+                remainCount ? --remainCount : 0;
+            }
+            return index;
+        };
+        graphicsQueueIndex =
+            calcIndex(properties.size(), properties[graphicsQueueFamilyIndex].queueCount,
+                      remainQueueCounts[graphicsQueueFamilyIndex], graphicsQueueFamilyIndex);
+        computeQueueIndex =
+            calcIndex(properties.size(), properties[computeQueueFamilyIndex].queueCount,
+                      remainQueueCounts[computeQueueFamilyIndex], computeQueueFamilyIndex);
+        transferQueueIndex =
+            calcIndex(properties.size(), properties[transferQueueFamilyIndex].queueCount,
+                      remainQueueCounts[transferQueueFamilyIndex], transferQueueFamilyIndex);
+        presentQueueIndex =
+            calcIndex(properties.size(), properties[presentQueueFamilyIndex].queueCount,
+                      remainQueueCounts[presentQueueFamilyIndex], presentQueueFamilyIndex);
+        return std::tuple(graphicsQueueIndex, transferQueueIndex, presentQueueIndex,
+                          computeQueueIndex);
+    }
+
+    auto makeDeviceQueueCreateInfos(const uint64_t &graphicsQueueIndex,
+                                    const uint64_t &transferQueueIndex,
+                                    const uint64_t &presentQueueIndex,
+                                    const uint64_t &computeQueueIndex, //
+                                    float graphicsProirity, float transferProirity,
+                                    float presentProirity, float computeProirity)
+        -> std::tuple<std::vector<float>, std::vector<::vk::DeviceQueueCreateInfo>>
+    {
+        std::vector<float>                       priorities(4, 0.0F);
+        std::vector<::vk::DeviceQueueCreateInfo> infos;
+        // sort
+        std::vector<std::tuple<uint64_t, uint64_t, float>> seq(4);
+        seq[0] = std::tuple(graphicsQueueIndex & 0xFFFFFFFF, graphicsQueueIndex >> 32,
+                            -graphicsProirity);
+        seq[1] = std::tuple(transferQueueIndex & 0xFFFFFFFF, transferQueueIndex >> 32,
+                            -transferProirity);
+        seq[2] =
+            std::tuple(presentQueueIndex & 0xFFFFFFFF, presentQueueIndex >> 32, -presentProirity);
+        seq[3] =
+            std::tuple(computeQueueIndex & 0xFFFFFFFF, computeQueueIndex >> 32, -computeProirity);
+        std::sort(seq.begin(), seq.end());
+        // make
+        size_t last   = 0;
+        priorities[0] = -std::get<2>(seq[0]);
+        for (size_t i = 1; i < seq.size(); ++i) {
+            const auto &[lastFamilyIndex, lastIndex, unused] = seq[i - 1];
+            const auto &[familyIndex, index, priority]       = seq[i];
+
+            priorities[i] = -priority;
+            if (familyIndex == lastFamilyIndex) {
+                continue;
+            }
+            infos.push_back(
+                ::vk::DeviceQueueCreateInfo({}, lastFamilyIndex, lastIndex + 1, &priorities[last]));
+            last = i;
+        }
+        const auto &[familyIndex, index, priority] = *seq.rbegin();
+        infos.push_back(::vk::DeviceQueueCreateInfo({}, familyIndex, index + 1, &priorities[last]));
+        for (size_t i = 0; i < infos.size(); ++i) {
+            if (infos[i].queueFamilyIndex == 0xFFFFFFFF) {
+                infos.resize(i);
+                break;
+            }
+        }
+        return std::tuple(std::move(priorities), std::move(infos));
+    }
+
     auto createInstanceAndDebugUtilsMessenger(const ::vk::raii::Context   &context,
                                               std::span<const char *const> extensions)
         -> std::tuple<::vk::Result, ::vk::raii::Instance, ::vk::raii::DebugUtilsMessengerEXT>
@@ -297,5 +478,118 @@ namespace vulkan
         }
 
         return std::tuple(res, std::move(instance), std::move(messenger));
+    }
+
+    auto getPhysicalDeviceGroup(const ::vk::raii::Instance &instance)
+        -> std::tuple<::vk::Result, ::vk::PhysicalDeviceGroupProperties>
+    {
+        ::vk::Result res = ::vk::Result::eSuccess;
+
+        auto deviceGroups = instance.enumeratePhysicalDeviceGroups();
+        if (deviceGroups.empty()) {
+            res = ::vk::Result::eErrorDeviceLost;
+        }
+
+        if (res == ::vk::Result::eSuccess) {
+            std::vector<::vk::PhysicalDeviceType> physicalDeviceTypes;
+            physicalDeviceTypes.reserve(deviceGroups.size());
+            for (const auto &property : deviceGroups) {
+                physicalDeviceTypes.push_back(property.physicalDevices[0]
+                                                  .getProperties(*instance.getDispatcher())
+                                                  .deviceType);
+            }
+            // select physical device group
+            for (size_t i = 0; i < physicalDeviceTypes.size(); ++i) {
+                if (physicalDeviceTypes[i] == ::vk::PhysicalDeviceType::eDiscreteGpu) {
+                    return std::tuple(res, deviceGroups[i]);
+                }
+            }
+            for (size_t i = 0; i < physicalDeviceTypes.size(); ++i) {
+                if (physicalDeviceTypes[i] == ::vk::PhysicalDeviceType::eIntegratedGpu) {
+                    return std::tuple(res, deviceGroups[i]);
+                }
+            }
+            for (size_t i = 0; i < physicalDeviceTypes.size(); ++i) {
+                if (physicalDeviceTypes[i] == ::vk::PhysicalDeviceType::eCpu) {
+                    return std::tuple(res, deviceGroups[i]);
+                }
+            }
+            for (size_t i = 0; i < physicalDeviceTypes.size(); ++i) {
+                if (physicalDeviceTypes[i] == ::vk::PhysicalDeviceType::eVirtualGpu) {
+                    return std::tuple(res, deviceGroups[i]);
+                }
+            }
+            res = ::vk::Result::eErrorDeviceLost;
+        }
+        return std::tuple(res, ::vk::PhysicalDeviceGroupProperties());
+    }
+
+    auto createDeviceAndQueueIndices(const ::vk::raii::Instance              &instance,
+                                     const vk::PhysicalDeviceGroupProperties &properties,
+                                     const ::vk::raii::SurfaceKHR            &surface,
+                                     const ::vk::PhysicalDeviceFeatures      &features)
+        -> std::tuple<::vk::Result, ::vk::raii::Device, uint64_t, uint64_t, uint64_t, uint64_t>
+    {
+        vk::Result         res                = ::vk::Result::eSuccess;
+        ::vk::raii::Device device             = nullptr;
+        uint64_t           graphicsQueueIndex = 0;
+        uint64_t           transferQueueIndex = 0;
+        uint64_t           presentQueueIndex  = 0;
+        uint64_t           computeQueueIndex  = 0;
+
+        auto physicalDevice = ::vk::raii::PhysicalDevice(instance, properties.physicalDevices[0]);
+        // queue indices
+        auto queueProperties = physicalDevice.getQueueFamilyProperties();
+        graphicsQueueIndex   = selectDeviceQueueFamilyIndex(
+            queueProperties, ::vk::QueueFlagBits::eGraphics, ::vk::QueueFlags());
+        transferQueueIndex = selectDeviceQueueFamilyIndex(
+            queueProperties, ::vk::QueueFlagBits::eTransfer, ::vk::QueueFlagBits::eGraphics);
+        presentQueueIndex =
+            physicalDevice.getSurfaceSupportKHR(graphicsQueueIndex, surface) == ::vk::True
+                ? graphicsQueueIndex
+                : selectPresentQueueFamilyIndex(physicalDevice, surface, queueProperties);
+        computeQueueIndex = selectDeviceQueueFamilyIndex(
+            queueProperties, ::vk::QueueFlagBits::eCompute, ::vk::QueueFlagBits::eGraphics);
+        if (graphicsQueueIndex == std::numeric_limits<uint64_t>::max()) {
+            res = ::vk::Result::eErrorDeviceLost;
+        }
+        if (transferQueueIndex == std::numeric_limits<uint64_t>::max()) {
+            transferQueueIndex = graphicsQueueIndex;
+        }
+        if (computeQueueIndex == std::numeric_limits<uint64_t>::max()) {
+            computeQueueIndex = graphicsQueueIndex;
+        }
+        std::tie(graphicsQueueIndex, transferQueueIndex, presentQueueIndex, computeQueueIndex) =
+            selectDeviceQueueIndex(queueProperties, graphicsQueueIndex, transferQueueIndex,
+                                   presentQueueIndex, computeQueueIndex);
+        presentQueueIndex = std::numeric_limits<uint64_t>::max();
+        auto [priorities, queueCreateInfos] =
+            makeDeviceQueueCreateInfos(graphicsQueueIndex, transferQueueIndex, presentQueueIndex,
+                                       computeQueueIndex, 1.0F, 1.0F, 0.5F, 0.5F);
+
+        // layers and extensions
+        // Device layers is deprecated!!!!!!!!!!
+        // See: https://github.com/KhronosGroup/Vulkan-Loader/issues/1086
+        // auto layerProperties = physicalDevice.enumerateDeviceLayerProperties();
+        auto extenProperties = physicalDevice.enumerateDeviceExtensionProperties();
+        auto enabledLayers   = std::vector<const char *>();
+        auto enabledExtens   = std::vector<const char *>();
+        if (hasExtension(extenProperties, VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
+            enabledExtens.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        }
+
+        // DeviceGroupDeviceCreateInfo
+        auto devGroupInfo = ::vk::DeviceGroupDeviceCreateInfo(properties.physicalDeviceCount,
+                                                              properties.physicalDevices);
+
+        // create device
+        {
+            auto info = ::vk::DeviceCreateInfo({}, queueCreateInfos, enabledLayers, enabledExtens,
+                                               &features, &devGroupInfo);
+            auto val  = physicalDevice.createDevice(info);
+            val ? void(device = std::move(val.value())) : void(res = val.error());
+        }
+        return std::tuple(res, std::move(device), graphicsQueueIndex, transferQueueIndex,
+                          presentQueueIndex, computeQueueIndex);
     }
 } // namespace vulkan
