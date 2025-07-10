@@ -30,9 +30,9 @@ option("3rd_kind",     {showmenu = true, default = get_config("kind"), values = 
 option("outputdir",    {showmenu = true, default = path.join(os.projectdir(), "bin"), type = "string"})
 
 includes("@builtin/check")
-check_macros("has_std_out_ptr",  "__cpp_lib_out_ptr",  {name = "has_std_out_ptr", languages = stdcxx_ver(), includes = "memory"})
-check_macros("has_std_expected", "__cpp_lib_expected", {name = "has_std_expected", languages = stdcxx_ver(), includes = "expected"})
-check_macros("has_std_runtime_format", "__cpp_lib_format >= 202311L", {name = "has_std_runtime_format", languages = stdcxx_ver(), includes = "format"})
+check_macros("has_std_out_ptr",  "__cpp_lib_out_ptr",  {name = "has_std_out_ptr", languages = stdcxx_ver(), runtimes = get_config("runtimes"), includes = "memory"})
+check_macros("has_std_expected", "__cpp_lib_expected", {name = "has_std_expected", languages = stdcxx_ver(), runtimes = get_config("runtimes"), includes = "expected"})
+check_macros("has_std_runtime_format", "__cpp_lib_format >= 202311L", {name = "has_std_runtime_format", languages = stdcxx_ver(), runtimes = get_config("runtimes"), includes = "format"})
 
 -- 隐藏设置、隐藏目标、打包命令
 includes("lua/hideoptions.lua")
@@ -42,14 +42,14 @@ includes("lua/hideoptions.lua")
 -- some of the third-party use our own configurations
 add_repositories("myrepo 3rd", {rootdir = os.scriptdir()})
 -- header-only libraries
-if not get_config("has_std_out_ptr") then
+if not has_config("has_std_out_ptr") then
     add_requires("out_ptr")
 end
-if not get_config("has_std_expected") then
+if not has_config("has_std_expected") then
     add_requires("tl_expected")
 end
 add_requires("cxxopts", {version = "3.x.x"})
--- add_requires("vulkan-memory-allocator-hpp", {version = "3.1.0"})
+add_requires("vulkan-memory-allocator-hpp", {version = "3.1.0"})
 add_requires("tinygltf", {version = "x.x.x"})
 -- normal libraries
 add_requires("vulkansdk")

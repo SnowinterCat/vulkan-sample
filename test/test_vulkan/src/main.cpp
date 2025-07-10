@@ -653,4 +653,16 @@ namespace vulkan
         }
         return std::tuple(res, graphicsQueue, transferQueue, presentQueue, computeQueue);
     }
+
+    auto createSwapchain(const ::vk::raii::Device &device, const ::vk::raii::SurfaceKHR &surface)
+        -> std::tuple<::vk::Result, ::vk::raii::SwapchainKHR>
+    {
+        auto res       = ::vk::Result::eSuccess;
+        auto swapchain = ::vk::raii::SwapchainKHR(nullptr);
+
+        {
+            auto info = ::vk::SwapchainCreateInfoKHR({}, surface);
+        }
+        return std::tuple(res, std::move(swapchain));
+    }
 } // namespace vulkan
