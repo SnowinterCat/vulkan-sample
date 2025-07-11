@@ -8,15 +8,15 @@ set_configvar("PROJECT_NAME", "vulkan-sample")
 
 -- 全局设置
 option("stdc",   {showmenu = true, default = 23, values = {23}})
-option("stdcxx", {showmenu = true, default = 23, values = {23, 20}})
-function stdc_ver() 
-    return get_config("stdc") and "c" .. get_config("stdc") or nil
+option("stdcxx", {showmenu = true, default = 23, values = {26, 23, 20}})
+function stdc()
+    return "c" .. tostring(get_config("stdc"))
 end
-function stdcxx_ver() 
-    return get_config("stdcxx") and "c++" .. get_config("stdcxx") or nil
+function stdcxx()
+    return "c++" .. tostring(get_config("stdcxx"))
 end
 
-set_languages(stdc_ver(), stdcxx_ver())
+set_languages(stdc(), stdcxx())
 set_warnings("allextra")
 set_encodings("utf-8")
 set_exceptions("cxx")
@@ -29,10 +29,10 @@ add_rules("plugin.compile_commands.autoupdate", {lsp = "clangd", outputdir = ".v
 option("3rd_kind",     {showmenu = true, default = get_config("kind"), values = {"static", "shared"}})
 option("outputdir",    {showmenu = true, default = path.join(os.projectdir(), "bin"), type = "string"})
 
-includes("@builtin/check")
-check_macros("has_std_out_ptr",  "__cpp_lib_out_ptr",  {name = "has_std_out_ptr", languages = stdcxx_ver(), runtimes = get_config("runtimes"), includes = "memory"})
-check_macros("has_std_expected", "__cpp_lib_expected", {name = "has_std_expected", languages = stdcxx_ver(), runtimes = get_config("runtimes"), includes = "expected"})
-check_macros("has_std_runtime_format", "__cpp_lib_format >= 202311L", {name = "has_std_runtime_format", languages = stdcxx_ver(), runtimes = get_config("runtimes"), includes = "format"})
+includes("lua/check")
+check_macros("has_std_out_ptr",  "__cpp_lib_out_ptr",  {languages = stdcxx(), includes = "memory"})
+check_macros("has_std_expected", "__cpp_lib_expected", {languages = stdcxx(), includes = "expected"})
+check_macros("has_std_runtime_format", "__cpp_lib_format >= 202311L", {languages = stdcxx(), includes = "format"})
 
 -- 隐藏设置、隐藏目标、打包命令
 includes("lua/hideoptions.lua")
