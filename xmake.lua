@@ -25,6 +25,7 @@ add_rules("plugin.compile_commands.autoupdate", {lsp = "clangd", outputdir = ".v
 option("3rd_kind",     {showmenu = true, default = get_config("kind"), values = {"static", "shared"}})
 option("outputdir",    {showmenu = true, default = path.join(os.projectdir(), "bin"), type = "string"})
 option("buildversion", {showmenu = true, default = 0, type = "number"})
+option("replace",      {showmenu = true, default = false, type = "boolean"}) -- export三方库时是否强制替换
 
 includes("lua/check")
 check_macros("has_std_out_ptr",  "__cpp_lib_out_ptr",  {languages = stdcxx(), includes = "memory"})
@@ -33,7 +34,7 @@ check_macros("has_std_runtime_format", "__cpp_lib_format >= 202311L", {languages
 
 -- 隐藏设置、隐藏目标、打包命令
 includes("lua/hideoptions.lua")
--- includes("lua/hidetargets.lua")
+includes("lua/hidetargets.lua")
 -- includes("lua/pack.lua")
 
 -- some of the third-party use our own configurations
