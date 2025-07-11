@@ -9,12 +9,8 @@ set_configvar("PROJECT_NAME", "vulkan-sample")
 -- 全局设置
 option("stdc",   {showmenu = true, default = 23, values = {23}})
 option("stdcxx", {showmenu = true, default = 23, values = {26, 23, 20}})
-function stdc()
-    return "c" .. tostring(get_config("stdc"))
-end
-function stdcxx()
-    return "c++" .. tostring(get_config("stdcxx"))
-end
+function stdc()   return "c"   .. tostring(get_config("stdc"))   end
+function stdcxx() return "c++" .. tostring(get_config("stdcxx")) end
 
 set_languages(stdc(), stdcxx())
 set_warnings("allextra")
