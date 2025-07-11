@@ -1,6 +1,6 @@
 -- 工程设置
 set_project("vulkan-sample")
-set_version("0.0.1", {soname = true})
+set_version("0.0.1", {build = tostring(get_config("buildversion")), soname = true})
 set_xmakever("3.0.0")
 
 set_configvar("LEGAL_COPYRIGHT", "Copyright (C) 2024 SnowinterCat")
@@ -24,6 +24,7 @@ add_rules("plugin.compile_commands.autoupdate", {lsp = "clangd", outputdir = ".v
 -- 编译设置
 option("3rd_kind",     {showmenu = true, default = get_config("kind"), values = {"static", "shared"}})
 option("outputdir",    {showmenu = true, default = path.join(os.projectdir(), "bin"), type = "string"})
+option("buildversion", {showmenu = true, default = 0, type = "number"})
 
 includes("lua/check")
 check_macros("has_std_out_ptr",  "__cpp_lib_out_ptr",  {languages = stdcxx(), includes = "memory"})
