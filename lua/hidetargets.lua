@@ -31,22 +31,22 @@ target("export")
             if not (exportfiles[pkg_name] ~= nil) then
                 exportfiles[pkg_name] = {}
             end
-            table.insert(exportfiles[pkg_name], filepath)
+            if path.extension(filepath) == ".a" or path.extension(filepath) == ".lib" then
+            else
+                table.insert(exportfiles[pkg_name], filepath)
+            end
         end
         -- export
         for pkg_name, files in pairs(exportfiles) do
             table.sort(files)
             print(pkg_name, "(lib count: " .. tostring(#files) .. ")", files)
             for _, file in ipairs(files) do
-                if path.extension(file) == ".a" or path.extension(file) == ".lib" then
-                else
-                    local targetpath = path.join(path.translate(target:targetdir()), path.filename(file))
-                    if os.isfile(targetpath) and has_config("replace") then
-                        os.tryrm(targetpath)
-                        os.cp(file, target:targetdir() .. "/", {symlink = true})
-                    elseif not os.isfile(targetpath) then
-                        os.cp(file, target:targetdir() .. "/", {symlink = true})
-                    end
+                local targetpath = path.join(path.translate(target:targetdir()), path.filename(file))
+                if os.isfile(targetpath) and has_config("replace") then
+                    os.tryrm(targetpath)
+                    os.cp(file, target:targetdir() .. "/", {symlink = true})
+                elseif not os.isfile(targetpath) then
+                    os.cp(file, target:targetdir() .. "/", {symlink = true})
                 end
             end
         end
