@@ -14,6 +14,7 @@ namespace fmtlib
 #if __cpp_lib_format >= 202311L
     using namespace std;
 #else
+    #include <fmt/xchar.h>
     using namespace fmt;
 #endif
 } // namespace fmtlib
@@ -23,7 +24,8 @@ namespace outptrlib
 #if defined(__cpp_lib_out_ptr)
     using namespace std;
 #else
-    using namespace out_ptr::out_ptr;
+    #include <ztd/out_ptr.hpp>
+    using namespace ztd::out_ptr;
 #endif
 } // namespace outptrlib
 
@@ -32,6 +34,7 @@ namespace expectedlib
 #if defined(__cpp_lib_expected)
     using namespace std;
 #else
+    #include <tl/expected.hpp>
     using namespace tl;
 #endif
 } // namespace expectedlib

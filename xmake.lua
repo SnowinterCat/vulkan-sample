@@ -2,6 +2,7 @@
 set_project("vulkan-sample")
 set_version("0.0.1", {build = tostring(get_config("buildversion")), soname = true})
 set_xmakever("3.0.0")
+option("alias", {showmenu = false, default = "vks"}) -- 工程名缩写
 
 set_configvar("LEGAL_COPYRIGHT", "Copyright (C) 2024 SnowinterCat")
 set_configvar("PROJECT_NAME", "vulkan-sample")
@@ -60,11 +61,11 @@ add_requireconfs("**.vulkan-headers", {override = true, version = "1.3.296"})
 add_requireconfs("**.libxext", {system = true})     -- from libsdl3
 add_requireconfs("**.libx11", {system = true})      -- from libsdl3
 add_requireconfs("**.wayland", {system = true})     -- from libsdl3
-add_requireconfs("**.fmt", {override = true, version = "11.0.x", configs = {shared = is_config("3rd_kind", "shared"), header_only = false}})
+add_requireconfs("**.fmt", {override = true, version = "11.x.x", configs = {shared = is_config("3rd_kind", "shared"), header_only = false}})
 add_requireconfs("**.nlohmann_json", {override = true, version = "3.x.x"})
 add_requireconfs("**.stb", {override = true, version = "x.x.x"})
 
 -- subdirectories
--- includes("src/*/xmake.lua")
--- includes("exec/*/xmake.lua")
+includes("src/*/xmake.lua")
+includes("exec/*/xmake.lua")
 includes("test/*/xmake.lua")
