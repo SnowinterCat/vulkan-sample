@@ -1,9 +1,9 @@
-#include "vks/stl/deleter.hpp"
+#include <vks/__stl/raii.hpp>
 
 VKS_BEGIN
 VKS_STL_BEGIN
 
-void FileDeleter::operator()(FILE *file)
+void FileCloser::operator()(FILE *file)
 {
     if (file != nullptr) {
         std::fclose(file);

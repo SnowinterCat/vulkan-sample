@@ -1,12 +1,14 @@
 #pragma once
-#if defined(_WIN32) && defined(VKS_DLL)
-    #if defined(VKS_STL_EXPORTS)
+#include <vks/config.hpp>
+
+// VKS_STL_API
+#if defined(_WIN32) && defined(VKS_SHARED_BUILD)
+    #if defined(VKS_STL_COMPILING)
         #define VKS_STL_API __declspec(dllexport)
     #else
         #define VKS_STL_API __declspec(dllimport)
     #endif
 #endif
-
 #if !defined(VKS_STL_API)
     #if !defined(VKS_NO_GCC_API_ATTRIBUTE) && defined(__GNUC__) && (__GNUC__ >= 4)
         #define VKS_STL_API __attribute__((visibility("default")))

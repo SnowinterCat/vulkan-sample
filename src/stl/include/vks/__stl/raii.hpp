@@ -1,24 +1,21 @@
-//
-// deleter.hpp
-//
-// Package: vulkan sample
-// Library: VksStl
-// Module:  stl
-//
-
 #pragma once
-
-#include "vks/basic/osdep.h"
-#include "vks/stl/stl_library.h"
-
+#include <vks/config.hpp>
+#include <vks/__stl/stl_config.hpp>
+// Standard Library
 #include <cstdio>
+#include <memory>
 
 VKS_BEGIN
 VKS_STL_BEGIN
 
-struct VKS_STL_API FileDeleter {
+struct VKS_STL_API FileCloser {
     void operator()(FILE *file);
 };
+
+namespace raii
+{
+    using File = std::unique_ptr<FILE, FileCloser>;
+}
 
 VKS_STL_END
 VKS_END
