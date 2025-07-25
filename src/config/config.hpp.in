@@ -1,0 +1,20 @@
+#pragma once
+
+#define VKS_VERSION                                                                                \
+    ((((uint32_t)(VKS_VERSION_BUILD)) << 29U) | (((uint32_t)(VKS_VERSION_MAJOR)) << 22U) |         \
+     (((uint32_t)(VKS_VERSION_MINOR)) << 12U) | ((uint32_t)(VKS_VERSION_ALTER)))
+#define VKS_VERSION_STR "${VERSION}.${VERSION_BUILD}"
+#define VKS_VERSION_MAJOR ${VERSION_MAJOR}
+#define VKS_VERSION_MINOR ${VERSION_MINOR}
+#define VKS_VERSION_ALTER ${VERSION_ALTER}
+#define VKS_VERSION_BUILD ${VERSION_BUILD}
+#define VKS_PLAT "${PLAT}"
+#define VKS_ARCH "${ARCH}"
+${define VKS_SHARED_BUILD}
+#define VKS_MODE "${MODE}"
+#define VKS_DEBUG ${DEBUG}
+#define VKS_OS "${OS}"
+
+#include <vks/__config/os.hpp>
+#include <vks/__config/compiler.hpp>
+#include <vks/__config/platform.hpp>
