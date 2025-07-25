@@ -23,10 +23,7 @@ end
 function autofunc.library_autodefine(target)
     local projNameUpper = string.upper(get_config("alias"))
     local targNameUpper = string.upper(target:name())
-    if target:kind() == "shared" then
-        target:add("defines", projNameUpper .. "_" .. targNameUpper .. "_DLL")
-    end
-    target:add("defines", projNameUpper .. "_" .. targNameUpper .. "_EXPORTS")
+    target:add("defines", projNameUpper .. "_" .. targNameUpper .. "_COMPILING")
 end
 
 function autofunc.binary_autoluanch(target)

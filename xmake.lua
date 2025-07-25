@@ -55,6 +55,9 @@ add_requires("vulkansdk")
 add_requires("libsdl3", {version = "3.x.x", configs = {shared = is_config("3rd_kind", "shared"), x11 = true, wayland = true}})
 add_requires("imgui", {version = "1.x.x", configs = {shared = is_config("3rd_kind", "shared")}})
 add_requires("spdlog", {version = "1.x.x", configs = {shared = is_config("3rd_kind", "shared"), header_only = false, fmt_external = not has_config("has_std_runtime_format"), std_format = has_config("has_std_runtime_format"), wchar = true, wchar_console = true}})
+if not has_config("has_std_runtime_format") then
+    add_requires("fmt", {version = "11.x.x", configs = {shared = is_config("3rd_kind", "shared"), header_only = false}})
+end
 -- normal libraries' dependencies configurations
 add_requireconfs("**.vulkan-memory-allocator", {override = true, version = "3.1.0"})
 add_requireconfs("**.vulkan-headers", {override = true, version = "1.3.296"})

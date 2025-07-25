@@ -5,7 +5,7 @@ target("test_vulkan")
     add_packages("spdlog", "imgui", "libsdl3",
         is_plat("android") and nil or "vulkansdk",
         has_config("has_std_out_ptr") and nil or "out_ptr",
-        has_config("has_std_expected") and nil or "tl_expected" 
+        has_config("has_std_expected") and nil or "tl_expected"
     )
 
     -- add_includedirs("include", {public = true})

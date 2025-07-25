@@ -1,4 +1,7 @@
 #pragma once
+#include <vks/__config/os.hpp>
+#include <vks/__config/compiler.hpp>
+#include <vks/__config/platform.hpp>
 
 #define VKS_VERSION                                                                                \
     ((((uint32_t)(VKS_VERSION_BUILD)) << 29U) | (((uint32_t)(VKS_VERSION_MAJOR)) << 22U) |         \
@@ -15,6 +18,7 @@ ${define VKS_SHARED_BUILD}
 #define VKS_DEBUG ${DEBUG}
 #define VKS_OS "${OS}"
 
-#include <vks/__config/os.hpp>
-#include <vks/__config/compiler.hpp>
-#include <vks/__config/platform.hpp>
+#define VKS_BEGIN                                                                                  \
+    namespace vks                                                                                  \
+    {
+#define VKS_END }

@@ -18,3 +18,7 @@
 #define VKS_DEBUG 1
 #define VKS_OS "WINDOWS"
 
+#define VKS_BEGIN                                                                                  \
+    namespace vks                                                                                  \
+    {
+#define VKS_END }
