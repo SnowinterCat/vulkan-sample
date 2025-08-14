@@ -190,11 +190,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char *const *argv)
         return static_cast<int>(res);
     }
     // swapchain
-    if (std::tie(res, swapchain) = vulkan::createSwapchain(device); res != vk::Result::eSuccess) {
-        SPDLOG_ERROR("[Vulkan] Create Swapchain Error, code: {}, info: {}", static_cast<int>(res),
-                     vk::to_string(res));
-        return static_cast<int>(res);
-    }
+    // if (std::tie(res, swapchain) = vulkan::createSwapchain(device); res != vk::Result::eSuccess)
+    // {
+    //     SPDLOG_ERROR("[Vulkan] Create Swapchain Error, code: {}, info: {}",
+    //     static_cast<int>(res),
+    //                  vk::to_string(res));
+    //     return static_cast<int>(res);
+    // }
 
     auto event = SDL_Event();
     auto run   = true;
