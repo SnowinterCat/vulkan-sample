@@ -14,7 +14,9 @@ package("vulkan-memory-allocator")
     add_versions("v3.2.1", '5e7749504cb802427ffb7bec38a0b6a15db46ae253f00560acb3e624d9fe695c')
     add_versions("v3.3.0", 'c4f6bbe6b5a45c2eb610ca9d231158e313086d5b1a40c9922cb42b597419b14e')
 
-    add_deps("vulkansdk")
+    if not is_plat("android") then
+        add_deps("vulkansdk")
+    end
 
     on_load(function (package)
         if package:version() and package:version():ge("3.1.0") then
