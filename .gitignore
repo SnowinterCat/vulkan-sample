@@ -5,4 +5,5 @@
 /vs*/
 
 config.h
+config.hpp
 .clang-format
