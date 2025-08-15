@@ -26,7 +26,7 @@ add_rules("plugin.compile_commands.autoupdate", {lsp = "clangd", outputdir = ".v
 option("3rd_kind",     {showmenu = true, default = get_config("kind"), values = {"static", "shared"}})
 option("outputdir",    {showmenu = true, default = path.join(os.projectdir(), "bin"), type = "string"})
 option("buildversion", {showmenu = true, default = 0, type = "number"})
-option("replace",      {showmenu = true, default = false, type = "boolean"}) -- export三方库时是否强制替换
+option("replace",      {showmenu = true, default = false, type = "boolean"}) -- export 三方库时是否强制替换
 
 includes("lua/check")
 check_macros("has_std_out_ptr",  "__cpp_lib_out_ptr",  {languages = stdcxx(), includes = "memory"})
