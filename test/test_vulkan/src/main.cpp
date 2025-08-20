@@ -50,6 +50,29 @@ namespace sdl3
 
     namespace raii
     {
+
+        template <std::invocable Func>
+        class [[nodiscard]] ScopeExit {
+        public:
+            ScopeExit(Func func) : _func(std::move(func)) {}
+            ~ScopeExit() { _func(); }
+
+            ScopeExit(const ScopeExit &)            = delete;
+            ScopeExit &operator=(const ScopeExit &) = delete;
+
+            ScopeExit(ScopeExit &&rhs) noexcept : _func(std::exchange(rhs._func, {})) {}
+            ScopeExit &operator=(ScopeExit &&rhs) noexcept
+            {
+                if (this != &rhs) {
+                    std::swap(_func, rhs._func);
+                }
+                return *this;
+            }
+
+        private:
+            Func _func;
+        };
+
         using Init   = std::unique_ptr<void, Quiter>;
         using Window = std::unique_ptr<SDL_Window, WindowDeleter>;
     } // namespace raii
@@ -145,7 +168,10 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char *const *argv)
     auto computeQueueIndex   = uint64_t(0);
     auto swapchain           = vk::raii::SwapchainKHR(nullptr);
     // sdl3
-    auto initer = sdl3::raii::Init((void *)SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD));
+    auto initer = sdl3::raii::ScopeExit(
+        std::bind(&SDL_QuitSubSystem, SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)
+                                          ? SDL_INIT_VIDEO | SDL_INIT_GAMEPAD
+                                          : NULL));
     auto window = sdl3::raii::Window(
         SDL_CreateWindow("ImGui SDL3+Vulkan example", 1280, 720,
                          SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY));
