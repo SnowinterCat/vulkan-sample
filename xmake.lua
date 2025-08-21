@@ -51,7 +51,9 @@ add_requires("cxxopts", {version = "3.x.x"})
 add_requires("vulkan-memory-allocator-hpp", {version = "3.1.0"})
 add_requires("tinygltf", {version = "x.x.x"})
 -- normal libraries
-add_requires("vulkansdk")
+if not is_plat("android") then
+    add_requires("vulkansdk")
+end
 add_requires("libsdl3", {version = "3.x.x", configs = {shared = is_config("3rd_kind", "shared"), x11 = true, wayland = true}})
 add_requires("imgui", {version = "1.x.x", configs = {shared = is_config("3rd_kind", "shared")}})
 add_requires("spdlog", {version = "1.x.x", configs = {shared = is_config("3rd_kind", "shared"), header_only = false, fmt_external = not has_config("has_std_runtime_format"), std_format = has_config("has_std_runtime_format"), wchar = true, wchar_console = true}})
