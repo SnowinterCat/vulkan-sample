@@ -5,8 +5,11 @@
 #include <concepts>
 #include <utility>
 
+VKS_BEGIN
+VKS_STL_BEGIN
+
 template <std::invocable Func>
-class ScopeExit {
+class [[nodiscard]] ScopeExit {
 public:
     ScopeExit(Func func) : _func(std::move(func)) {}
     ~ScopeExit() { _func(); }
@@ -23,6 +26,9 @@ public:
         return *this;
     }
 
-private:
+protected:
     Func _func;
 };
+
+VKS_STL_END
+VKS_END
